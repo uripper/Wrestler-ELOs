@@ -76,51 +76,46 @@ for START_TEST in trange(1,2):
                 l_length = 0
                 adjust_a = 0
                 adjust_b = 0
-                if multicheck == False:
-                    pass
-                else:
+                if multicheck != False:
                     p = str(df["Competitors"][i])
                     q = winner.split(",")
                     z = loser.split(",")
-                    if len(q) > 1:
-                        pass
-                    else:
-
+                    if len(q) <= 1:
                         if len(z) > 1:
                             loser = z[0]
-                    
-                    
+
+
                         l = p.split(",")
-                        for i in range(100):
+                        for _ in range(100):
                             try:
                                 l.remove(" ")
                             except ValueError:
                                 break
-                                
+
 
                         l_length = len(l)
                         l_length = l_length
-                    
+
                 if l_length > 2:
                     adjust_a = adjust * (1 - (prob_winner ** (1 / l_length)))
                     adjust_b = adjust / (1 - (prob_loser ** (1 / l_length)))
-                
+
                 if a_match < const_match:
                     adjust_a = (adjust)  * (const_match - a_match) * 2 + adjust_a
 
                 else:
                     adjust_a = adjust + adjust_a
 
-                        
+
                 if b_match < const_match:
                     adjust_b = adjust * (const_match - b_match) * 2 + adjust_b
 
-                    
+
                 else:
                     adjust_b = adjust + adjust_b
 
-                    
-                    
+
+
 
                 return adjust_a, adjust_b
 
@@ -134,10 +129,10 @@ for START_TEST in trange(1,2):
                     return roster.index[roster.index.str.contains(name)]
                 else:
                     name = name.split(" ")
-                    names = []
-                    for i in range(len(name)):
-                        names.append(roster.index[roster.index.str.contains(name[i])])
-                    return names
+                    return [
+                        roster.index[roster.index.str.contains(name[i])]
+                        for i in range(len(name))
+                    ]
 
             # %%
             def adjust_elo(winner, loser, elo_a=starting_elo, elo_b=starting_elo, a_match=0, b_match=0, i=0, multicheck=False, adjust=adjustment_rate, mse_list=mse_list, check_mse=False):
@@ -146,23 +141,22 @@ for START_TEST in trange(1,2):
                 prob_winner = .5
                 prob_loser = 1 / (1 + 10 ** ((elo_a - elo_b) / adjust))
                 prob_loser = .5
-                
+
 
                 adjust=adjustment_rate
-                
+
                 adjust_a, adjust_b = find_adjustment(winner, loser, prob_winner, prob_loser, a_match, b_match, i=i, multicheck=multicheck)
                 adjust_a = (adjust_a) * (1 - prob_winner)
                 adjust_b = (adjust_b) * (1 - prob_loser)
                 adj_a_list.append(adjust_a)
-                adj_b_list.append(adjust_b)  
+                adj_b_list.append(adjust_b)
                 elo_a = elo_a + (adjust_a) * (1 - prob_winner)
                 elo_b = elo_b + (adjust_b) * (0 - prob_loser)
-                if elo_b < 100:
-                    elo_b = 100
+                elo_b = max(elo_b, 100)
                 a_match += 1
                 b_match += 1
                 work_mse = prob_winner * (1 - prob_winner)
-                
+
                 if adjust_a > 300 or adjust_b > 300:
                     outliers_dict["Match"].append({"Winner": winner, "Loser": loser, "Adjustment": [adjust_a, adjust_b]})
                 return elo_a, elo_b
@@ -173,7 +167,7 @@ for START_TEST in trange(1,2):
                     elo_a = roster.loc[a, "Elo"]
                 except:
                     new_a = find_closest_roster(a)
-                    print("Did you mean the following/one of the following {}?".format(new_a))
+                    print(f"Did you mean the following/one of the following {new_a}?")
                     user_input = input("Enter the name of the roster you meant, or type 'new' for someone not on the roster: ")
                     if user_input == "new":
                         elo_a = starting_elo
@@ -181,12 +175,12 @@ for START_TEST in trange(1,2):
                     else:
                         elo_a = roster.loc[user_input, "Elo"]
                         a = user_input
-                
+
                 try:
                     elo_b = roster.loc[b, "Elo"]
                 except:
                     new_b = find_closest_roster(b)
-                    print("Did you mean the following/one of the following {}?".format(new_b))
+                    print(f"Did you mean the following/one of the following {new_b}?")
                     user_input = input("Enter the name of the roster you meant, or type 'new' for someone not on the roster: ")
                     if user_input != "new":
                         elo_b = roster.loc[user_input, "Elo"]
@@ -194,7 +188,7 @@ for START_TEST in trange(1,2):
                     else:
                         elo_b = starting_elo
                         b_match = 0
-                
+
                 prob_a = 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
                 prob_b = 1 / (1 + 10 ** ((elo_a - elo_b) / 400))
                 try:
@@ -205,16 +199,16 @@ for START_TEST in trange(1,2):
                     b_match = roster.loc[b, "Number of Matches"]
                 except:
                     pass
-                
+
                 adjust_a, adjust_x = find_adjustment(a, b, prob_a, prob_b, a_match, b_match)
                 adjust_b, adjust_y = find_adjustment(b, a, prob_b, prob_a, b_match, a_match)
-                
+
                 adjust_a = adjust_a * (1 - prob_a)
                 adjust_x = adjust_x * (0 - prob_b)
-                
+
                 adjust_b = adjust_b * (1 - prob_b)
                 adjust_y = adjust_y * (0 - prob_a)
-                
+
                 print("-"*50)
                 print(f"""
                     {a}'s Elo: {elo_a}
